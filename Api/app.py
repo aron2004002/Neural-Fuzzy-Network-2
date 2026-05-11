@@ -5,107 +5,180 @@ import joblib
 import sys
 import os
 
+# ---------------------------------------------------
+# Base Directory
+# ---------------------------------------------------
 
-# Fix import path
-sys.path.append(
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '..')
-    )
+BASE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
 )
+
+# Add root project path
+sys.path.append(BASE_DIR)
+
+# ---------------------------------------------------
+# Import Neuro Fuzzy Model
+# ---------------------------------------------------
 
 from MODEL.fuzzy_model import NeuroFuzzySystem
 
+# ---------------------------------------------------
+# Load Model and Scaler
+# ---------------------------------------------------
 
-# Load trained model
-model = joblib.load("MODEL/saved_model.pkl")
-scaler = joblib.load("MODEL/scaler.pkl")
+model_path = os.path.join(
+    BASE_DIR,
+    "MODEL",
+    "saved_model.pkl"
+)
 
+scaler_path = os.path.join(
+    BASE_DIR,
+    "MODEL",
+    "scaler.pkl"
+)
 
-# Initialize fuzzy system
+try:
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
+
+except Exception as e:
+    st.error(f"Error loading model files: {e}")
+    st.stop()
+
+# ---------------------------------------------------
+# Initialize Fuzzy System
+# ---------------------------------------------------
+
 fuzzy_system = NeuroFuzzySystem()
 
+# ---------------------------------------------------
+# Streamlit Config
+# ---------------------------------------------------
 
-# Streamlit page config
 st.set_page_config(
     page_title="Neuro-Fuzzy Disease Diagnosis",
     layout="centered"
 )
 
+# ---------------------------------------------------
+# App Title
+# ---------------------------------------------------
 
 st.title("🧠 Neuro-Fuzzy Disease Diagnosis System")
 
-st.write("Enter patient details below")
+st.write(
+    "Enter patient details below to predict diabetes risk."
+)
 
-
-# -----------------------------
+# ---------------------------------------------------
 # User Inputs
-# -----------------------------
+# ---------------------------------------------------
 
-pregnancies = st.number_input("Pregnancies", 0, 20, 1)
+pregnancies = st.number_input(
+    "Pregnancies",
+    min_value=0,
+    max_value=20,
+    value=1
+)
 
-glucose = st.number_input("Glucose Level", 0, 300, 120)
+glucose = st.number_input(
+    "Glucose Level",
+    min_value=0,
+    max_value=300,
+    value=120
+)
 
-blood_pressure = st.number_input("Blood Pressure", 0, 200, 70)
+blood_pressure = st.number_input(
+    "Blood Pressure",
+    min_value=0,
+    max_value=200,
+    value=70
+)
 
-skin_thickness = st.number_input("Skin Thickness", 0, 100, 20)
+skin_thickness = st.number_input(
+    "Skin Thickness",
+    min_value=0,
+    max_value=100,
+    value=20
+)
 
-insulin = st.number_input("Insulin", 0, 900, 79)
+insulin = st.number_input(
+    "Insulin",
+    min_value=0,
+    max_value=900,
+    value=79
+)
 
-bmi = st.number_input("BMI", 0.0, 70.0, 25.0)
+bmi = st.number_input(
+    "BMI",
+    min_value=0.0,
+    max_value=70.0,
+    value=25.0
+)
 
 diabetes_pedigree = st.number_input(
     "Diabetes Pedigree Function",
-    0.0,
-    3.0,
-    0.5
+    min_value=0.0,
+    max_value=3.0,
+    value=0.5
 )
 
-age = st.number_input("Age", 1, 120, 30)
+age = st.number_input(
+    "Age",
+    min_value=1,
+    max_value=120,
+    value=30
+)
 
-
-# -----------------------------
+# ---------------------------------------------------
 # Fuzzy Result Function
-# -----------------------------
+# ---------------------------------------------------
 
 def get_fuzzy_result(prediction):
 
     if prediction == 1:
         return "⚠️ High risk detected by Neuro-Fuzzy System"
-    else:
-        return "✅ Low diabetes risk detected"
 
+    return "✅ Low diabetes risk detected"
 
-# -----------------------------
-# Predict Button
-# -----------------------------
+# ---------------------------------------------------
+# Prediction
+# ---------------------------------------------------
 
 if st.button("Predict"):
 
-    input_data = [[
-        pregnancies,
-        glucose,
-        blood_pressure,
-        skin_thickness,
-        insulin,
-        bmi,
-        diabetes_pedigree,
-        age
-    ]]
+    try:
 
-    # Scale input
-    scaled_data = scaler.transform(input_data)
+        input_data = np.array([[
+            pregnancies,
+            glucose,
+            blood_pressure,
+            skin_thickness,
+            insulin,
+            bmi,
+            diabetes_pedigree,
+            age
+        ]])
 
-    # Prediction
-    prediction = model.predict(scaled_data)
+        # Scale input
+        scaled_data = scaler.transform(input_data)
 
-    # Fuzzy Output
-    fuzzy_result = get_fuzzy_result(prediction[0])
+        # Predict
+        prediction = model.predict(scaled_data)
 
-    st.subheader("Prediction Result")
+        # Fuzzy output
+        fuzzy_result = get_fuzzy_result(prediction[0])
 
-    if prediction[0] == 1:
-        st.error("Diabetes Positive")
-    else:
-        st.success("Diabetes Negative")
+        st.subheader("Prediction Result")
 
-    st.info(fuzzy_result)
+        if prediction[0] == 1:
+            st.error("Diabetes Positive")
+
+        else:
+            st.success("Diabetes Negative")
+
+        st.info(fuzzy_result)
+
+    except Exception as e:
+        st.error(f"Prediction Error: {e}")
